@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from pygame import Vector2
+from pygame import Vector2, Color
 
 from ...bot import Bot
 from ...linear_math import Transform
@@ -14,6 +14,10 @@ class Dustrider(Bot):
     @property
     def contributor(self):
         return "Rayman"
+
+    @property
+    def color(self):
+        return Color(200, 200, 0)
 
     def compute_commands(self, next_waypoint: int, position: Transform, velocity: Vector2) -> Tuple:
         target = self.track.lines[next_waypoint]
