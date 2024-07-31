@@ -54,16 +54,16 @@ class Dustrider(Bot):
                 waypoint, end_position, end_velocity = self.simulate(next_waypoint, position, velocity, throttle,
                                                                      steering_command, dt, N)
                 distance_to_next_waypoint = (self.track.lines[waypoint] - end_position.p).length()
-                cost = -1000 * waypoint + distance_to_next_waypoint
+                cost = -1000 * ((waypoint - next_waypoint) % len(self.track.lines)) + distance_to_next_waypoint
                 if cost < best_cost:
-                    print(
-                        f'Better\tcost={cost:.3f} throttle={throttle} steering={steering_command} waypoint={waypoint} distance={distance_to_next_waypoint}')
+                    # print(
+                    #     f'Better\tcost={cost:.3f} throttle={throttle} steering={steering_command} waypoint={waypoint} distance={distance_to_next_waypoint}')
                     best_cost = cost
                     best_throttle = throttle
                     best_steering_command = steering_command
-                else:
-                    print(
-                        f'\tcost={cost:.3f} throttle={throttle} steering={steering_command} waypoint={waypoint} distance={distance_to_next_waypoint}')
+                # else:
+                # print(
+                #     f'\tcost={cost:.3f} throttle={throttle} steering={steering_command} waypoint={waypoint} distance={distance_to_next_waypoint}')
 
         # Simulate the best throttle and steering command
         car = CarInfo(None, self.track)
@@ -77,8 +77,8 @@ class Dustrider(Bot):
             self.simulation.append(deepcopy(car.position))
 
         # Print simulation
-        print(f'Position: {position.p}')
-        print('\n')
+        # print(f'Position: {position.p}')
+        # print('\n')
         return best_throttle, best_steering_command
 
     def simulate(self, next_waypoint: int, position: Transform, velocity: Vector2, throttle, steering_command, dt, N):
@@ -92,5 +92,5 @@ class Dustrider(Bot):
 
     def draw(self, map_scaled: Surface, zoom):
         # Draw the simulation on the scaled map
-        print(f'Simulation: {[p.p for p in self.simulation]}')
+        # print(f'Simulation: {[p.p for p in self.simulation]}')
         pygame.draw.lines(map_scaled, (0, 0, 0), False, [zoom * p.p for p in self.simulation], 2)
