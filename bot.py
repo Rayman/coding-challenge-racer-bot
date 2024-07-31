@@ -5,6 +5,7 @@ import numpy as np
 import pygame
 from pygame import Vector2, Color, Surface
 
+from ...constants import framerate
 from ...bot import Bot
 from ...car_info import CarInfo
 from ...linear_math import Transform
@@ -43,7 +44,7 @@ class Dustrider(Bot):
         #     else:
         #         throttle, steering_command = 0.1, -1
 
-        dt = 1 / 60
+        dt = 1 / framerate
         N = 50
 
         best_cost = float('inf')
