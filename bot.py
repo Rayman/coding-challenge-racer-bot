@@ -5,9 +5,9 @@ import numpy as np
 import pygame
 from pygame import Vector2, Color, Surface
 
-from ...constants import framerate
 from ...bot import Bot
 from ...car_info import CarInfo
+from ...constants import framerate
 from ...linear_math import Transform
 
 
@@ -74,7 +74,7 @@ class Dustrider(Bot):
         self.simulation = []
         self.simulation.append(deepcopy(car.position))
         for i in range(N):
-            car.update(dt, best_throttle, best_steering_command)
+            car.update(0, dt, best_throttle, best_steering_command)
             self.simulation.append(deepcopy(car.position))
 
         # Print simulation
@@ -88,7 +88,7 @@ class Dustrider(Bot):
         car.velocity = deepcopy(velocity)
         car.next_waypoint = next_waypoint
         for i in range(N):
-            car.update(dt, throttle, steering_command)
+            car.update(0, dt, throttle, steering_command)
         return car.next_waypoint, car.position, car.velocity
 
     def draw(self, map_scaled: Surface, zoom):
