@@ -1,5 +1,5 @@
-from .bot import SimpleBot
+from .bot import Dustrider
 
 
 def test_init():
-    bot = SimpleBot(track=None)
+    bot = Dustrider(track=None)
