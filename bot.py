@@ -72,7 +72,7 @@ class Dustrider(Bot):
         self.simulation = []
         self.simulation.append(deepcopy(car.car_physics.position))
         for i in range(N):
-            car.update(0, dt, best_throttle, best_steering_command)
+            car.update(dt, best_throttle, best_steering_command)
             self.simulation.append(deepcopy(car.car_physics.position))
 
         # Print simulation
@@ -83,7 +83,7 @@ class Dustrider(Bot):
     def simulate(self, next_waypoint: int, position: Transform, velocity: Vector2, throttle, steering_command, dt, N):
         car = CarSimulator(self.track, next_waypoint, deepcopy(position), deepcopy(velocity))
         for i in range(N):
-            car.update(0, dt, throttle, steering_command)
+            car.update(dt, throttle, steering_command)
         return car.next_waypoint, car.car_physics.position, car.car_physics.velocity
 
     def draw(self, map_scaled: Surface, zoom):
@@ -98,8 +98,8 @@ class CarSimulator:
         self.next_waypoint = next_waypoint
         self.car_physics = CarPhysics(position, velocity)
 
-    def update(self, time: float, dt: float, throttle: float, steering_command: float):
-        self.car_physics.update(time, dt, throttle, steering_command)
+    def update(self, dt: float, throttle: float, steering_command: float):
+        self.car_physics.update(dt, throttle, steering_command)
 
         # Update next waypoint
         if (self.track.lines[self.next_waypoint] - self.car_physics.position.p).length() < self.track.track_width:
