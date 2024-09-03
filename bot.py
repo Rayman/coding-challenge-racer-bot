@@ -6,9 +6,10 @@ import pygame
 from pygame import Vector2, Color, Surface
 
 from ...bot import Bot
-from ...car_info import CarInfo
+from ...car_info import CarPhysics
 from ...constants import framerate
 from ...linear_math import Transform
+from ...track import Track
 
 
 class Dustrider(Bot):
@@ -67,15 +68,12 @@ class Dustrider(Bot):
                 #     f'\tcost={cost:.3f} throttle={throttle} steering={steering_command} waypoint={waypoint} distance={distance_to_next_waypoint}')
 
         # Simulate the best throttle and steering command
-        car = CarInfo(None, self.track)
-        car.position = deepcopy(position)
-        car.velocity = deepcopy(velocity)
-        car.next_waypoint = next_waypoint
+        car = CarSimulator(self.track, next_waypoint, deepcopy(position), deepcopy(velocity))
         self.simulation = []
-        self.simulation.append(deepcopy(car.position))
+        self.simulation.append(deepcopy(car.car_physics.position))
         for i in range(N):
             car.update(0, dt, best_throttle, best_steering_command)
-            self.simulation.append(deepcopy(car.position))
+            self.simulation.append(deepcopy(car.car_physics.position))
 
         # Print simulation
         # print(f'Position: {position.p}')
@@ -83,15 +81,28 @@ class Dustrider(Bot):
         return best_throttle, best_steering_command
 
     def simulate(self, next_waypoint: int, position: Transform, velocity: Vector2, throttle, steering_command, dt, N):
-        car = CarInfo(None, self.track)
-        car.position = deepcopy(position)
-        car.velocity = deepcopy(velocity)
-        car.next_waypoint = next_waypoint
+        car = CarSimulator(self.track, next_waypoint, deepcopy(position), deepcopy(velocity))
         for i in range(N):
             car.update(0, dt, throttle, steering_command)
-        return car.next_waypoint, car.position, car.velocity
+        return car.next_waypoint, car.car_physics.position, car.car_physics.velocity
 
     def draw(self, map_scaled: Surface, zoom):
         # Draw the simulation on the scaled map
         # print(f'Simulation: {[p.p for p in self.simulation]}')
         pygame.draw.lines(map_scaled, (0, 0, 0), False, [zoom * p.p for p in self.simulation], 2)
+
+
+class CarSimulator:
+    def __init__(self, track: Track, next_waypoint: int, position: Transform, velocity: Vector2):
+        self.track = track
+        self.next_waypoint = next_waypoint
+        self.car_physics = CarPhysics(position, velocity)
+
+    def update(self, time: float, dt: float, throttle: float, steering_command: float):
+        self.car_physics.update(time, dt, throttle, steering_command)
+
+        # Update next waypoint
+        if (self.track.lines[self.next_waypoint] - self.car_physics.position.p).length() < self.track.track_width:
+            self.next_waypoint = self.next_waypoint + 1
+            if self.next_waypoint >= len(self.track.lines):
+                self.next_waypoint = 0
