@@ -8,6 +8,7 @@ from pygame import Vector2, Color
 
 from ...bot import Bot
 from ...linear_math import Transform
+from ...track import Track
 
 DEBUG = False
 
@@ -20,7 +21,7 @@ def normalize_angle(angle):
 
 
 class RoadRunner(Bot):
-    def __init__(self, track):
+    def __init__(self, track: Track):
         super().__init__(track)
         self.config = Namespace(corner_velocity=313, deceleration=107,
                                 corner_slow_down=2.2)
@@ -48,7 +49,6 @@ class RoadRunner(Bot):
         relative_target = position.inverse() * target
         # calculate the angle to the target
         angle = relative_target.as_polar()[1]
-        next_angle = (target - position.p).angle_to(next_target - target)
 
         corner_angle = abs(normalize_angle(radians((target - position.p).angle_to(next_target - target))))
         corner_velocity = self.config.corner_velocity * (1 - self.config.corner_slow_down * corner_angle / pi)
