@@ -1,4 +1,5 @@
 import json
+from argparse import Namespace
 from math import sqrt
 from socket import socket, AF_INET, SOCK_DGRAM
 from typing import Tuple
@@ -8,12 +9,16 @@ from pygame import Vector2, Color
 from ...bot import Bot
 from ...linear_math import Transform
 
+DEBUG = False
+
 
 class RoadRunner(Bot):
     def __init__(self, track):
         super().__init__(track)
-        self.sock = socket(AF_INET, SOCK_DGRAM)
-        self.server_address = ('127.0.0.1', 12345)
+        self.config = Namespace(corner_velocity=125, deceleration=197)
+        if DEBUG:
+            self.sock = socket(AF_INET, SOCK_DGRAM)
+            self.server_address = ('127.0.0.1', 12345)
 
     @property
     def name(self):
@@ -34,18 +39,15 @@ class RoadRunner(Bot):
         # calculate the angle to the target
         angle = target.as_polar()[1]
 
-        # calculate the throttle
-        corner_velocity = 150
-        deceleration = 150
+        max_velocity = sqrt(self.config.corner_velocity ** 2 + 2 * self.config.deceleration * target.length())
 
-        max_velocity = sqrt(corner_velocity ** 2 + 2 * deceleration * target.length())
-
-        data = {
-            'angle': angle,
-            'velocity': velocity.length(),
-            'max_velocity': max_velocity
-        }
-        self.sock.sendto(json.dumps(data).encode('utf-8'), self.server_address)
+        if DEBUG:
+            data = {
+                'angle': angle,
+                'velocity': velocity.length(),
+                'max_velocity': max_velocity
+            }
+            self.sock.sendto(json.dumps(data).encode('utf-8'), self.server_address)
 
         if velocity.length() < max_velocity:
             throttle = 1
