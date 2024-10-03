@@ -35,7 +35,7 @@ class RoadRunner(Bot):
 
     @property
     def contributor(self):
-        return "Rayman"
+        return "Rayman [NC]"
 
     @property
     def color(self):
