@@ -23,8 +23,8 @@ def normalize_angle(angle):
 class RoadRunner(Bot):
     def __init__(self, track: Track):
         super().__init__(track)
-        self.config = Namespace(corner_velocity=313, deceleration=107,
-                                corner_slow_down=2.2)
+        self.config = Namespace(corner_velocity=285.1612416010679, deceleration=114.44908662365383,
+                                corner_slow_down=1.9127399408946921)
         if DEBUG:
             self.sock = socket(AF_INET, SOCK_DGRAM)
             self.server_address = ('127.0.0.1', 12389)
