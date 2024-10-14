@@ -1,7 +1,7 @@
 import json
 from argparse import Namespace
 from copy import deepcopy
-from math import fmod, pi, radians
+from math import fmod, pi, radians, sqrt
 from socket import socket, AF_INET, SOCK_DGRAM
 from typing import Tuple
 
@@ -29,20 +29,28 @@ class Dustrider(Bot):
     def __init__(self, track):
         super().__init__(track)
         self.config = Namespace(
-            corner_velocity=150,
-            corner_slow_down=2,
+            corner_velocity=125.81725665083509,
+            corner_slow_down=1.0087992314286436,
+            w_waypoint=1788.3175053702512,
+            w_speed=0.0029678521544897023,
+            deceleration=162.56516253655303,
         )
         self.target_speeds = []
-        for line in track.lines:
-            corner_angle = abs(
-                normalize_angle(radians(line.angle_to(track.lines[(track.lines.index(line) + 1) % len(track.lines)]))))
-            target_speed = self.config.corner_velocity * (1 - self.config.corner_slow_down * corner_angle / pi)
-            self.target_speeds.append(target_speed)
-
+        self.calculate_target_speeds(track)
         self.simulation = []
+        self.font = pygame.font.SysFont('', 20)
         if DEBUG:
             self.sock = socket(AF_INET, SOCK_DGRAM)
             self.server_address = ('127.0.0.1', 12389)
+
+    def calculate_target_speeds(self, track: Track):
+        self.target_speeds = []
+        for i in range(len(track.lines)):
+            previous = track.lines[i] - track.lines[(i - 1) % len(track.lines)]
+            next = track.lines[(i + 1) % len(track.lines)] - track.lines[i]
+            corner_angle = abs(normalize_angle(radians(previous.angle_to(next))))
+            target_speed = self.config.corner_velocity * (1 - self.config.corner_slow_down * corner_angle / pi)
+            self.target_speeds.append(target_speed)
 
     @property
     def name(self):
@@ -57,21 +65,6 @@ class Dustrider(Bot):
         return Color(200, 200, 0)
 
     def compute_commands(self, next_waypoint: int, position: Transform, velocity: Vector2) -> Tuple:
-        # target = self.track.lines[next_waypoint]
-        # # calculate the target in the frame of the robot
-        # target = position.inverse() * target
-        # # calculate the angle to the target
-        # angle = target.as_polar()[1]
-        #
-        # # calculate the throttle and steering
-        # if abs(angle) < 0.1:
-        #     throttle, steering_command = 1, 0
-        # else:
-        #     if angle > 0:
-        #         throttle, steering_command = 0.1, 1
-        #     else:
-        #         throttle, steering_command = 0.1, -1
-
         dt = 1 / framerate
         N = 10
 
@@ -89,11 +82,13 @@ class Dustrider(Bot):
                 distance_to_next_waypoint = (self.track.lines[waypoint] - end_position.p).length()
 
                 # cost 3
-                target_speed = self.target_speeds[waypoint_plus_one]
-                velocity_diff = (target_speed - end_velocity.length()) ** 2 / 1000
+                target_speed_at_waypoint = self.target_speeds[waypoint_plus_one]
+                target_speed = sqrt(
+                    target_speed_at_waypoint ** 2 + 2 * self.config.deceleration * distance_to_next_waypoint)
+                velocity_diff = (target_speed - end_velocity.length()) ** 2 * self.config.w_speed
 
                 # total cost
-                cost = -1000 * ((waypoint - next_waypoint) % len(
+                cost = -self.config.w_waypoint * ((waypoint - next_waypoint) % len(
                     self.track.lines)) + distance_to_next_waypoint + velocity_diff
                 if cost < best_cost:
                     # print(f'Better\tcost={cost:.3f} throttle={throttle} steering={steering_command} waypoint={waypoint} distance={distance_to_next_waypoint:.3f} speed={end_velocity.length():.3f} target_speed={target_speed:.3f} velocity_diff={velocity_diff:.3f}')
@@ -133,6 +128,11 @@ class Dustrider(Bot):
         # print(f'Simulation: {[p.p for p in self.simulation]}')
         if self.simulation:
             pygame.draw.lines(map_scaled, (0, 0, 0), False, [zoom * p.p for p in self.simulation], 2)
+
+        # Draw the target speeds
+        for i, target_speed in enumerate(self.target_speeds):
+            text = self.font.render(f'{target_speed:.2f}', True, (0, 0, 0))
+            map_scaled.blit(text, (self.track.lines[i].x * zoom, self.track.lines[i].y * zoom))
 
 
 class CarSimulator:
