@@ -29,11 +29,12 @@ class Dustrider(Bot):
     def __init__(self, track):
         super().__init__(track)
         self.config = Namespace(
-            corner_velocity=125.81725665083509,
-            corner_slow_down=1.0087992314286436,
-            w_waypoint=1788.3175053702512,
-            w_speed=0.0029678521544897023,
-            deceleration=162.56516253655303,
+            corner_velocity=127.09283490275138,
+            corner_slow_down=1.7432063509632763,
+            w_waypoint=6655.5493377555495,
+            w_speed=0.21039290480083847,
+            deceleration=177.38517534783395,
+            n=25,
         )
         self.target_speeds = []
         self.calculate_target_speeds(track)
@@ -66,7 +67,6 @@ class Dustrider(Bot):
 
     def compute_commands(self, next_waypoint: int, position: Transform, velocity: Vector2) -> Tuple:
         dt = 1 / framerate
-        N = 10
 
         # print()
         best_cost = float('inf')
@@ -75,7 +75,7 @@ class Dustrider(Bot):
         for throttle in np.linspace(-1, 1, 3):
             for steering_command in np.linspace(-1, 1, 5):
                 waypoint, end_position, end_velocity = self.simulate(next_waypoint, position, velocity, throttle,
-                                                                     steering_command, dt, N)
+                                                                     steering_command, dt, self.config.n)
                 waypoint_plus_one = (waypoint + 1) % len(self.track.lines)
 
                 # cost 2
@@ -85,7 +85,7 @@ class Dustrider(Bot):
                 target_speed_at_waypoint = self.target_speeds[waypoint_plus_one]
                 target_speed = sqrt(
                     target_speed_at_waypoint ** 2 + 2 * self.config.deceleration * distance_to_next_waypoint)
-                velocity_diff = (target_speed - end_velocity.length()) ** 2 * self.config.w_speed
+                velocity_diff = max(0., end_velocity.length() - target_speed) * self.config.w_speed
 
                 # total cost
                 cost = -self.config.w_waypoint * ((waypoint - next_waypoint) % len(
@@ -108,7 +108,7 @@ class Dustrider(Bot):
         car = CarSimulator(self.track, next_waypoint, deepcopy(position), deepcopy(velocity))
         self.simulation = []
         self.simulation.append(deepcopy(car.car_physics.position))
-        for i in range(N):
+        for i in range(self.config.n):
             car.update(dt, best_throttle, best_steering_command)
             self.simulation.append(deepcopy(car.car_physics.position))
 
