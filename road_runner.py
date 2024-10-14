@@ -1,6 +1,6 @@
 import json
 from argparse import Namespace
-from math import sqrt, fmod, pi, radians
+from math import sqrt, fmod, pi, radians, tan
 from socket import socket, AF_INET, SOCK_DGRAM
 from typing import Tuple
 
@@ -29,9 +29,9 @@ class RoadRunner(Bot):
     def __init__(self, track: Track):
         super().__init__(track)
         self.config = Namespace(
-            corner_velocity=400.8158473899843,
-            corner_slow_down=2.304897045426168,
-            deceleration=114.31474884582616
+            corner_velocity=346.7517369502499,
+            corner_slow_down=0.37797101233555064,
+            deceleration=122.28666911398155
         )
         self.target_speeds = []
         self.calculate_target_speeds(track)
@@ -46,7 +46,7 @@ class RoadRunner(Bot):
             previous = track.lines[i] - track.lines[(i - 1) % len(track.lines)]
             next = track.lines[(i + 1) % len(track.lines)] - track.lines[i]
             corner_angle = abs(normalize_angle(radians(previous.angle_to(next))))
-            target_speed = self.config.corner_velocity * (1 - self.config.corner_slow_down * corner_angle / pi)
+            target_speed = self.config.corner_velocity * self.config.corner_slow_down / tan(corner_angle)
             self.target_speeds.append(target_speed)
 
     @property
