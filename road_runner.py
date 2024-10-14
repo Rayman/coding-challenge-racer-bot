@@ -75,13 +75,35 @@ class RoadRunner(Bot):
         # calculate the angle to the target
         angle = relative_target.as_polar()[1]
 
+        max_velocity = self.calculate_target_speed(next_waypoint, position)
+
+        if DEBUG:
+            data = {
+                'angle': angle,
+                'velocity': velocity.length(),
+                'max_velocity': max_velocity,
+            }
+            self.sock.sendto(json.dumps(data).encode('utf-8'), self.server_address)
+
+        if velocity.length() < max_velocity:
+            throttle = 1
+        else:
+            throttle = -1
+
+        # calculate the steering
+        if angle > 0:
+            return throttle, 1
+        else:
+            return throttle, -1
+
+    def calculate_target_speed(self, next_waypoint: int, position: Transform):
         min_velocity = float('inf')
         waypoint_distance = 0
         # print()
         # print(f'current velocity: {velocity.length():.2f}')
         for i in crange(next_waypoint, next_waypoint + 10, len(self.track.lines)):
             if i == next_waypoint:
-                waypoint_distance = relative_target.length()
+                waypoint_distance = (self.track.lines[i] - position.p).length()
             else:
                 waypoint_distance += (self.track.lines[i] - self.track.lines[i - 1]).length()
             target_speed = self.target_speeds[i]
@@ -93,24 +115,7 @@ class RoadRunner(Bot):
             #     print(f'{i}\t{waypoint_distance:.2f}\t{target_speed:.2f}\t{max_velocity:.2f}')
         # print(f'min velocity: {min_velocity:.2f}')
 
-        if DEBUG:
-            data = {
-                'angle': angle,
-                'velocity': velocity.length(),
-                'min_velocity': min_velocity,
-            }
-            self.sock.sendto(json.dumps(data).encode('utf-8'), self.server_address)
-
-        if velocity.length() < min_velocity:
-            throttle = 1
-        else:
-            throttle = -1
-
-        # calculate the steering
-        if angle > 0:
-            return throttle, 1
-        else:
-            return throttle, -1
+        return min_velocity
 
     def draw(self, map_scaled: Surface, zoom):
         if DEBUG:
