@@ -1,4 +1,8 @@
+import json
+from argparse import Namespace
 from copy import deepcopy
+from math import fmod, pi, radians
+from socket import socket, AF_INET, SOCK_DGRAM
 from typing import Tuple
 
 import numpy as np
@@ -11,11 +15,34 @@ from ...constants import framerate
 from ...linear_math import Transform
 from ...track import Track
 
+DEBUG = False
+
+
+def normalize_angle(angle):
+    result = fmod(angle + pi, 2.0 * pi)
+    if result <= 0.0:
+        return result + pi
+    return result - pi
+
 
 class Dustrider(Bot):
     def __init__(self, track):
         super().__init__(track)
+        self.config = Namespace(
+            corner_velocity=150,
+            corner_slow_down=2,
+        )
+        self.target_speeds = []
+        for line in track.lines:
+            corner_angle = abs(
+                normalize_angle(radians(line.angle_to(track.lines[(track.lines.index(line) + 1) % len(track.lines)]))))
+            target_speed = self.config.corner_velocity * (1 - self.config.corner_slow_down * corner_angle / pi)
+            self.target_speeds.append(target_speed)
+
         self.simulation = []
+        if DEBUG:
+            self.sock = socket(AF_INET, SOCK_DGRAM)
+            self.server_address = ('127.0.0.1', 12389)
 
     @property
     def name(self):
@@ -46,26 +73,41 @@ class Dustrider(Bot):
         #         throttle, steering_command = 0.1, -1
 
         dt = 1 / framerate
-        N = 50
+        N = 10
 
+        # print()
         best_cost = float('inf')
         best_throttle = 0
         best_steering_command = 0
-        for throttle in np.linspace(-1, 1, 5):
+        for throttle in np.linspace(-1, 1, 3):
             for steering_command in np.linspace(-1, 1, 5):
                 waypoint, end_position, end_velocity = self.simulate(next_waypoint, position, velocity, throttle,
                                                                      steering_command, dt, N)
+                waypoint_plus_one = (waypoint + 1) % len(self.track.lines)
+
+                # cost 2
                 distance_to_next_waypoint = (self.track.lines[waypoint] - end_position.p).length()
-                cost = -1000 * ((waypoint - next_waypoint) % len(self.track.lines)) + distance_to_next_waypoint
+
+                # cost 3
+                target_speed = self.target_speeds[waypoint_plus_one]
+                velocity_diff = (target_speed - end_velocity.length()) ** 2 / 1000
+
+                # total cost
+                cost = -1000 * ((waypoint - next_waypoint) % len(
+                    self.track.lines)) + distance_to_next_waypoint + velocity_diff
                 if cost < best_cost:
-                    # print(
-                    #     f'Better\tcost={cost:.3f} throttle={throttle} steering={steering_command} waypoint={waypoint} distance={distance_to_next_waypoint}')
+                    # print(f'Better\tcost={cost:.3f} throttle={throttle} steering={steering_command} waypoint={waypoint} distance={distance_to_next_waypoint:.3f} speed={end_velocity.length():.3f} target_speed={target_speed:.3f} velocity_diff={velocity_diff:.3f}')
                     best_cost = cost
                     best_throttle = throttle
                     best_steering_command = steering_command
                 # else:
-                # print(
-                #     f'\tcost={cost:.3f} throttle={throttle} steering={steering_command} waypoint={waypoint} distance={distance_to_next_waypoint}')
+                # print(f'\tcost={cost:.3f} throttle={throttle} steering={steering_command} waypoint={waypoint} distance={distance_to_next_waypoint:.3f} speed={end_velocity.length():.3f} target_speed={target_speed:.3f} velocity_diff={velocity_diff:.3f}')
+
+        if DEBUG:
+            data = {
+                'target_speed': target_speed,
+            }
+            self.sock.sendto(json.dumps(data).encode('utf-8'), self.server_address)
 
         # Simulate the best throttle and steering command
         car = CarSimulator(self.track, next_waypoint, deepcopy(position), deepcopy(velocity))
@@ -89,7 +131,8 @@ class Dustrider(Bot):
     def draw(self, map_scaled: Surface, zoom):
         # Draw the simulation on the scaled map
         # print(f'Simulation: {[p.p for p in self.simulation]}')
-        pygame.draw.lines(map_scaled, (0, 0, 0), False, [zoom * p.p for p in self.simulation], 2)
+        if self.simulation:
+            pygame.draw.lines(map_scaled, (0, 0, 0), False, [zoom * p.p for p in self.simulation], 2)
 
 
 class CarSimulator:
