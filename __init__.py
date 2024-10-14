@@ -1,4 +1,4 @@
-from .bot import Dustrider
+from .dustrider import Dustrider
 from .road_runner import RoadRunner
 from .stanley import Stanley
 
