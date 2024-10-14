@@ -75,17 +75,17 @@ class RoadRunner(Bot):
         # calculate the angle to the target
         angle = relative_target.as_polar()[1]
 
-        max_velocity = self.calculate_target_speed(next_waypoint, position)
+        max_speed = self.calculate_target_speed(next_waypoint, position)
 
         if DEBUG:
             data = {
                 'angle': angle,
-                'velocity': velocity.length(),
-                'max_velocity': max_velocity,
+                'speed': velocity.length(),
+                'max_speed': max_speed,
             }
             self.sock.sendto(json.dumps(data).encode('utf-8'), self.server_address)
 
-        if velocity.length() < max_velocity:
+        if velocity.length() < max_speed:
             throttle = 1
         else:
             throttle = -1
@@ -97,25 +97,25 @@ class RoadRunner(Bot):
             return throttle, -1
 
     def calculate_target_speed(self, next_waypoint: int, position: Transform):
-        min_velocity = float('inf')
+        min_speed = float('inf')
         waypoint_distance = 0
         # print()
-        # print(f'current velocity: {velocity.length():.2f}')
+        # print(f'current speed: {velocity.length():.2f}')
         for i in crange(next_waypoint, next_waypoint + 10, len(self.track.lines)):
             if i == next_waypoint:
                 waypoint_distance = (self.track.lines[i] - position.p).length()
             else:
                 waypoint_distance += (self.track.lines[i] - self.track.lines[i - 1]).length()
             target_speed = self.target_speeds[i]
-            max_velocity = sqrt(target_speed ** 2 + 2 * self.config.deceleration * waypoint_distance)
-            if max_velocity < min_velocity:
-                # print(f'{i}\t{waypoint_distance:.2f}\t{target_speed:.2f}\t{max_velocity:.2f} *')
-                min_velocity = max_velocity
+            max_speed = sqrt(target_speed ** 2 + 2 * self.config.deceleration * waypoint_distance)
+            if max_speed < min_speed:
+                # print(f'{i}\t{waypoint_distance:.2f}\t{target_speed:.2f}\t{max_speed:.2f} *')
+                min_speed = max_speed
             # else:
-            #     print(f'{i}\t{waypoint_distance:.2f}\t{target_speed:.2f}\t{max_velocity:.2f}')
-        # print(f'min velocity: {min_velocity:.2f}')
+            #     print(f'{i}\t{waypoint_distance:.2f}\t{target_speed:.2f}\t{max_speed:.2f}')
+        # print(f'min speed: {min_speed:.2f}')
 
-        return min_velocity
+        return min_speed
 
     def draw(self, map_scaled: Surface, zoom):
         if DEBUG:
