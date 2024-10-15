@@ -1,7 +1,7 @@
 import json
 from argparse import Namespace
 from copy import deepcopy
-from math import fmod, pi, radians, sqrt
+from math import fmod, pi, sqrt
 from socket import socket, AF_INET, SOCK_DGRAM
 from typing import Tuple
 
@@ -29,11 +29,11 @@ class Dustrider(Bot):
     def __init__(self, track):
         super().__init__(track)
         self.config = Namespace(
-            corner_velocity=127.09283490275138,
-            corner_slow_down=1.7432063509632763,
-            w_waypoint=6655.5493377555495,
-            w_speed=0.21039290480083847,
-            deceleration=177.38517534783395,
+            corner_slow_down=1.3474480201529782,
+            deceleration=122.01115713324654,
+
+            w_waypoint=8797.335306281711,
+            w_speed=3.496329938262048,
             n=25,
         )
         self.target_speeds = []
@@ -47,10 +47,16 @@ class Dustrider(Bot):
     def calculate_target_speeds(self, track: Track):
         self.target_speeds = []
         for i in range(len(track.lines)):
-            previous = track.lines[i] - track.lines[(i - 1) % len(track.lines)]
-            next = track.lines[(i + 1) % len(track.lines)] - track.lines[i]
-            corner_angle = abs(normalize_angle(radians(previous.angle_to(next))))
-            target_speed = self.config.corner_velocity * (1 - self.config.corner_slow_down * corner_angle / pi)
+            p0 = self.track.lines[(i - 1) % len(self.track.lines)]
+            p1 = self.track.lines[i]
+            p2 = self.track.lines[(i + 1) % len(self.track.lines)]
+            a = (p2 - p1).length()
+            b = (p0 - p2).length()
+            c = (p0 - p1).length()
+            area = 0.5 * abs(p0.x * (p1.y - p2.y) + p1.x * (p2.y - p0.y) + p2.x * (p0.y - p1.y))
+            R = a * b * c / (4 * area)
+
+            target_speed = self.config.corner_slow_down * R
             self.target_speeds.append(target_speed)
 
     @property
