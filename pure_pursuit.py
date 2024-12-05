@@ -2,6 +2,7 @@ from argparse import Namespace
 from math import sqrt
 from typing import Tuple
 
+import pygame
 from pygame import Vector2, Color
 
 from ...bot import Bot
@@ -61,15 +62,19 @@ class PurePursuit(Bot):
         target_speed = self.calculate_target_speed(next_waypoint, position)
 
         try:
-            gamma = 2 * target.y / target.length() ** 2
+            gamma = 2 * target.y / target.length_squared()
         except ZeroDivisionError:
             gamma = 0
-        angular_velocity = gamma * target_speed
+        angular_velocity = gamma * velocity.length()
 
         if target_speed < velocity.length():
             throttle = -1
         else:
             throttle = 1
+
+        self.position = position
+        self.velocity = velocity
+        self.angular_velocity = angular_velocity
 
         return throttle, angular_velocity
 
@@ -93,3 +98,17 @@ class PurePursuit(Bot):
         # print(f'min speed: {min_speed:.2f}')
 
         return min_speed
+
+    def draw(self, map_scaled, zoom):
+        target = self.position.p + self.velocity
+        pygame.draw.line(map_scaled, (255, 0, 0), self.position.p * zoom, target * zoom, 2)
+
+        # calculate circle radius based on the angular velocity
+        try:
+            radius = self.velocity.length() / self.angular_velocity
+            if abs(radius) > 5000:
+                return
+            center = self.position.p + self.position.M.cols[1] * radius
+            pygame.draw.circle(map_scaled, (0, 255, 0), center * zoom, abs(radius * zoom), 2)
+        except (ZeroDivisionError, ValueError):
+            pass
