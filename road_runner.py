@@ -29,8 +29,8 @@ class RoadRunner(Bot):
     def __init__(self, track: Track):
         super().__init__(track)
         self.config = Namespace(
-            corner_slow_down=1.3474480201529782,
-            deceleration=122.01115713324654,
+            corner_slow_down=1.3344255280275334,
+            deceleration=125.64971221205201,
         )
         self.target_speeds = []
         self.calculate_target_speeds(track)
