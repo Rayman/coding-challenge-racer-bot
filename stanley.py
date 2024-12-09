@@ -1,9 +1,10 @@
+from math import atan, radians
 from typing import Tuple
 
 import pygame
 from pygame import Surface
 from pygame import Vector2, key, K_LEFT, K_RIGHT, K_UP, K_DOWN, Color
-from math import atan, radians
+
 from ...bot import Bot
 from ...linear_math import Transform
 
@@ -33,9 +34,7 @@ class Stanley(Bot):
         projected = (position.p - a).project(b - a) + a
         self.projected = projected
 
-        track_angle = radians((b-a).as_polar()[1])
-
-
+        track_angle = radians((b - a).as_polar()[1])
 
         e = (projected - position.p).length()
         k = 1
@@ -52,7 +51,6 @@ class Stanley(Bot):
             throttle = -1
 
         print(throttle, delta)
-
 
         keys = key.get_pressed()
         throttle = 0

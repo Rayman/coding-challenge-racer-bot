@@ -1,6 +1,6 @@
 import json
 from argparse import Namespace
-from math import sqrt, fmod, pi
+from math import sqrt
 from socket import socket, AF_INET, SOCK_DGRAM
 from typing import Tuple
 
@@ -11,13 +11,6 @@ from ...linear_math import Transform
 from ...track import Track
 
 DEBUG = False
-
-
-def normalize_angle(angle):
-    result = fmod(angle + pi, 2.0 * pi)
-    if result <= 0.0:
-        return result + pi
-    return result - pi
 
 
 def crange(start, end, modulo):

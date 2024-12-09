@@ -1,11 +1,12 @@
 import json
 from argparse import Namespace
-from math import sqrt, atan2, fmod, pi, radians
+from math import sqrt, atan2, radians
 from socket import socket, AF_INET, SOCK_DGRAM
 from typing import Tuple
 
 from pygame import Vector2, Color
 
+from .utils import normalize_angle
 from ...bot import Bot
 from ...linear_math import Transform
 from ...track import Track
@@ -16,13 +17,6 @@ DEBUG = True
 def crange(start, end, modulo):
     for i in range(start, end):
         yield i % modulo
-
-
-def normalize_angle(angle):
-    result = fmod(angle + pi, 2.0 * pi)
-    if result <= 0.0:
-        return result + pi
-    return result - pi
 
 
 class VectorPursuit(Bot):
