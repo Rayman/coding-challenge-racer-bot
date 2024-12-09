@@ -1,7 +1,7 @@
 import json
 from argparse import Namespace
 from copy import deepcopy
-from math import fmod, pi, sqrt
+from math import sqrt
 from socket import socket, AF_INET, SOCK_DGRAM
 from typing import Tuple
 
@@ -9,6 +9,7 @@ import numpy as np
 import pygame
 from pygame import Vector2, Color, Surface
 
+from .utils import calculate_target_speeds
 from ...bot import Bot
 from ...car_info import CarPhysics
 from ...constants import framerate
@@ -16,8 +17,6 @@ from ...linear_math import Transform
 from ...track import Track
 
 DEBUG = False
-
-
 
 
 class Dustrider(Bot):
@@ -31,28 +30,12 @@ class Dustrider(Bot):
             w_speed=3.496329938262048,
             n=25,
         )
-        self.target_speeds = []
-        self.calculate_target_speeds(track)
+        self.target_speeds = calculate_target_speeds(track, self.config.corner_slow_down)
         self.simulation = []
         self.font = pygame.font.SysFont('', 20)
         if DEBUG:
             self.sock = socket(AF_INET, SOCK_DGRAM)
             self.server_address = ('127.0.0.1', 12389)
-
-    def calculate_target_speeds(self, track: Track):
-        self.target_speeds = []
-        for i in range(len(track.lines)):
-            p0 = self.track.lines[(i - 1) % len(self.track.lines)]
-            p1 = self.track.lines[i]
-            p2 = self.track.lines[(i + 1) % len(self.track.lines)]
-            a = (p2 - p1).length()
-            b = (p0 - p2).length()
-            c = (p0 - p1).length()
-            area = 0.5 * abs(p0.x * (p1.y - p2.y) + p1.x * (p2.y - p0.y) + p2.x * (p0.y - p1.y))
-            R = a * b * c / (4 * area)
-
-            target_speed = self.config.corner_slow_down * R
-            self.target_speeds.append(target_speed)
 
     @property
     def name(self):
