@@ -9,6 +9,8 @@ from .utils import calculate_target_speeds, crange, calculate_target_speed
 from ...bot import Bot
 from ...linear_math import Transform
 
+DEBUG = False
+
 
 class CatmullRomSpline:
     def __init__(self, p0, p1, p2, p3, alpha: float = 0.5):
@@ -130,6 +132,9 @@ class RoadSprinter(Bot):
         raise RuntimeError('Could not find lookahead')
 
     def draw(self, map_scaled, zoom):
+        if not DEBUG:
+            return
+
         for segment in self.points:
             for p in segment:
                 pygame.draw.circle(map_scaled, (0, 0, 0), p * zoom, 2)
