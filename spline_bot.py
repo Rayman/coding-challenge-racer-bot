@@ -45,19 +45,22 @@ class SplineBot(Bot):
     def __init__(self, track):
         super().__init__(track)
         self.config = Namespace(
-            corner_slow_down=1.2785291990662067,
-            deceleration=122.35751522686678,
-            alpha=1.0,
-            lookahead=50.0,
+            corner_slow_down=1.327142934320906,
+            deceleration=138.24680851477612,
+            alpha=0.5320820464438623,
+            lookahead=41.354129918761494,
         )
-        self.target_speeds = calculate_target_speeds(track, self.config.corner_slow_down)
+        self.init()
+
+    def init(self):
+        self.target_speeds = calculate_target_speeds(self.track, self.config.corner_slow_down)
 
         self.splines = []
-        for i in range(len(track.lines)):
-            p0 = track.lines[(i - 1) % len(track.lines)]
-            p1 = track.lines[i]
-            p2 = track.lines[(i + 1) % len(track.lines)]
-            p3 = track.lines[(i + 2) % len(track.lines)]
+        for i in range(len(self.track.lines)):
+            p0 = self.track.lines[(i - 1) % len(self.track.lines)]
+            p1 = self.track.lines[i]
+            p2 = self.track.lines[(i + 1) % len(self.track.lines)]
+            p3 = self.track.lines[(i + 2) % len(self.track.lines)]
             self.splines.append(CatmullRomSpline(p0, p1, p2, p3, self.config.alpha))
 
     @property
@@ -121,12 +124,12 @@ class SplineBot(Bot):
         raise NotImplementedError("No lookahead point found")
 
     def draw(self, map_scaled, zoom):
-        for spline in self.splines:
-            points = []
-            for t in np.linspace(0, 1, 10):
-                points.append(spline.progress(t))
-            points = np.array(points)
-            pygame.draw.lines(map_scaled, (0, 0, 200), False, points * zoom, 2)
+        # for spline in self.splines:
+        #     points = []
+        #     for t in np.linspace(0, 1, 10):
+        #         points.append(spline.progress(t))
+        #     points = np.array(points)
+        #     pygame.draw.lines(map_scaled, (0, 0, 200), False, points * zoom, 2)
 
         pygame.draw.circle(map_scaled, (200, 0, 0), self.closest * zoom, 5)
         pygame.draw.circle(map_scaled, (0, 200, 0), self.lookahead_point * zoom, 5)
