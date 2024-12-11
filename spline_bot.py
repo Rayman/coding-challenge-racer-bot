@@ -45,10 +45,10 @@ class RoadSprinter(Bot):
     def __init__(self, track):
         super().__init__(track)
         self.config = Namespace(
-            deceleration=112.38055542885404,
-            corner_slow_down=1.5098151597277059,
+            deceleration=113.0881357782804,
+            corner_slow_down=1.498228120897416,
             alpha=1.0,
-            lookahead=53.4239313304019,
+            lookahead=54.47393828538373,
             min_segment_length=20.0
         )
         self.init()
