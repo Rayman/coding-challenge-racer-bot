@@ -41,14 +41,14 @@ class CatmullRomSpline:
         return (self.t2 - t) / (self.t2 - self.t1) * b1 + (t - self.t1) / (self.t2 - self.t1) * b2
 
 
-class SplineBot(Bot):
+class RoadSprinter(Bot):
     def __init__(self, track):
         super().__init__(track)
         self.config = Namespace(
-            corner_slow_down=1.327142934320906,
-            deceleration=138.24680851477612,
-            alpha=0.5320820464438623,
-            lookahead=41.354129918761494,
+            deceleration=112.38055542885404,
+            corner_slow_down=1.5098151597277059,
+            alpha=1.0,
+            lookahead=53.4239313304019,
             min_segment_length=20.0
         )
         self.init()
@@ -77,7 +77,7 @@ class SplineBot(Bot):
 
     @property
     def name(self):
-        return "SplineBot"
+        return "Road Sprinter"
 
     @property
     def contributor(self):
