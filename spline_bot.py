@@ -49,19 +49,31 @@ class SplineBot(Bot):
             deceleration=138.24680851477612,
             alpha=0.5320820464438623,
             lookahead=41.354129918761494,
+            min_segment_length=20.0
         )
         self.init()
 
     def init(self):
         self.target_speeds = calculate_target_speeds(self.track, self.config.corner_slow_down)
 
-        self.splines = []
+        splines = []
         for i in range(len(self.track.lines)):
             p0 = self.track.lines[(i - 1) % len(self.track.lines)]
             p1 = self.track.lines[i]
             p2 = self.track.lines[(i + 1) % len(self.track.lines)]
             p3 = self.track.lines[(i + 2) % len(self.track.lines)]
-            self.splines.append(CatmullRomSpline(p0, p1, p2, p3, self.config.alpha))
+            splines.append(CatmullRomSpline(p0, p1, p2, p3, self.config.alpha))
+
+        # interpolate each spline
+        self.points = []
+        for spline in splines:
+            for n in (2 ** i for i in range(2, 10)):
+                points = [spline.progress(t) for t in np.linspace(0, 1, n)]
+                points = [Vector2(*p) for p in points]
+                longest_segment = max((points[i] - points[i - 1]).length() for i in range(1, len(points)))
+                if longest_segment < self.config.min_segment_length:
+                    break
+            self.points.append(points)
 
     @property
     def name(self):
@@ -77,14 +89,11 @@ class SplineBot(Bot):
 
     def compute_commands(self, next_waypoint: int, position: Transform, velocity: Vector2) -> Tuple:
         # first search for the closest point on the spline to the car
-        def distance(t):
-            p = Vector2(*self.splines[(next_waypoint - 1) % len(self.splines)].progress(t))
-            return (p - position.p).length()
+        points = self.points[(next_waypoint - 1) % len(self.points)]
+        closest = min(range(len(points)), key=lambda i: (points[i] - position.p).length())
 
-        closest_t = min(np.linspace(0, 1, 10), key=distance)
-        closest = Vector2(*self.splines[(next_waypoint - 1) % len(self.splines)].progress(closest_t))
-
-        lookahead_point = self.find_lookahead(next_waypoint, closest, closest_t)
+        i, j = self.find_lookahead(next_waypoint, closest)
+        lookahead_point = self.points[i][j]
         target = position.inverse() * lookahead_point
         try:
             gamma = 2 * target.y / target.length_squared()
@@ -100,36 +109,30 @@ class SplineBot(Bot):
             throttle = 1
 
         # debug drawing
-        self.closest = closest
-        self.lookahead_point = lookahead_point
+        self.closest = points[closest]
+        self.lookahead = self.points[i][j]
 
         return throttle, angular_velocity
 
-    def find_lookahead(self, next_waypoint, closest, closest_t):
-        for i in crange(next_waypoint, next_waypoint + len(self.splines), len(self.splines)):
-            spline = self.splines[i - 1]
-            # look for the first point further away than the lookahead distance
-            if i == next_waypoint:
-                start_t = closest_t
+    def find_lookahead(self, next_waypoint: int, closest: int) -> Tuple[int, int]:
+        closest_point = self.points[(next_waypoint - 1) % len(self.points)][closest]
+        for i in crange(next_waypoint - 1, next_waypoint - 1 + len(self.track.lines), len(self.track.lines)):
+            if i == (next_waypoint - 1) % len(self.track.lines):
+                start_index = closest
             else:
-                start_t = 0
+                start_index = 0
 
-            for t in np.linspace(start_t, 1, 100):
-                lookahead_point = spline.progress(t)
-                lookahead_point = Vector2(*lookahead_point)
-                if (lookahead_point - closest).length() > self.config.lookahead:
-                    return lookahead_point
-            else:
-                continue
-        raise NotImplementedError("No lookahead point found")
+            for j in range(start_index, len(self.points[i])):
+                distance = (self.points[i][j] - closest_point).length()
+                if distance > self.config.lookahead:
+                    return i, j
+
+        raise RuntimeError('Could not find lookahead')
 
     def draw(self, map_scaled, zoom):
-        # for spline in self.splines:
-        #     points = []
-        #     for t in np.linspace(0, 1, 10):
-        #         points.append(spline.progress(t))
-        #     points = np.array(points)
-        #     pygame.draw.lines(map_scaled, (0, 0, 200), False, points * zoom, 2)
+        for segment in self.points:
+            for p in segment:
+                pygame.draw.circle(map_scaled, (0, 0, 0), p * zoom, 2)
 
         pygame.draw.circle(map_scaled, (200, 0, 0), self.closest * zoom, 5)
-        pygame.draw.circle(map_scaled, (0, 200, 0), self.lookahead_point * zoom, 5)
+        pygame.draw.circle(map_scaled, (0, 200, 0), self.lookahead * zoom, 5)

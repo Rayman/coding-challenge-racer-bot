@@ -3,7 +3,6 @@ from .pid import PID
 from .pure_pursuit import PurePursuit
 from .road_runner import RoadRunner
 from .spline_bot import SplineBot
-from .spline_bot2 import SplineBot2
 
 __all__ = [
     'Dustrider',
@@ -11,5 +10,4 @@ __all__ = [
     'PurePursuit',
     'RoadRunner',
     'SplineBot',
-    'SplineBot2',
 ]
