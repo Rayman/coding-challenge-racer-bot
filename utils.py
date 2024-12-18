@@ -12,18 +12,21 @@ def normalize_angle(angle):
     return result - pi
 
 
+def calculate_radius(p0, p1, p2):
+    a = (p2 - p1).length()
+    b = (p0 - p2).length()
+    c = (p0 - p1).length()
+    area = 0.5 * abs(p0.x * (p1.y - p2.y) + p1.x * (p2.y - p0.y) + p2.x * (p0.y - p1.y))
+    return a * b * c / (4 * area)
+
+
 def calculate_target_speeds(track: Track, corner_slow_down: float):
     target_speeds = []
     for i in range(len(track.lines)):
         p0 = track.lines[(i - 1) % len(track.lines)]
         p1 = track.lines[i]
         p2 = track.lines[(i + 1) % len(track.lines)]
-        a = (p2 - p1).length()
-        b = (p0 - p2).length()
-        c = (p0 - p1).length()
-        area = 0.5 * abs(p0.x * (p1.y - p2.y) + p1.x * (p2.y - p0.y) + p2.x * (p0.y - p1.y))
-        R = a * b * c / (4 * area)
-
+        R = calculate_radius(p0, p1, p2)
         target_speed = corner_slow_down * R
         target_speeds.append(target_speed)
     return target_speeds
