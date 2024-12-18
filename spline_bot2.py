@@ -1,4 +1,5 @@
 from argparse import Namespace
+from math import sqrt
 from typing import Tuple, Iterable
 
 import numpy as np
@@ -55,10 +56,10 @@ class RoadSprinter(Bot):
     def __init__(self, track):
         super().__init__(track)
         self.config = Namespace(
-            deceleration=113.0881357782804,
-            corner_slow_down=1.498228120897416,
+            deceleration=131.5248963211792,
+            corner_slow_down=1.0338337310195682,
             alpha=1.0,
-            lookahead=54.47393828538373,
+            lookahead=57.610848102630676,
             min_segment_length=20.0
         )
         self.points = []
@@ -125,7 +126,23 @@ class RoadSprinter(Bot):
             gamma = 0
         angular_velocity = gamma * velocity.length()
 
-        target_speed = 100
+        # print()
+        # print(f'{"i":>3} {"dist":>7} {"target":>7} {"max":>7}')
+        distance = 0
+        min_speed = float('inf')
+        corner_index = 0
+        for i in crange(closest, (closest + 100) % len(self.points), len(self.points)):
+            distance += (self.points[i] - self.points[(i - 1) % len(self.points)]).length()
+            target_speed = self.target_speeds[i]
+            max_speed = sqrt(target_speed ** 2 + 2 * self.config.deceleration * distance)
+            if max_speed < min_speed:
+                # print(f'{i:3} {distance:7.2f} {target_speed:7.2f} {max_speed:7.2f} *')
+                min_speed = max_speed
+                corner_index = i
+            # else:
+            #     print(f'{i:3} {distance:7.2f} {target_speed:7.2f} {max_speed:7.2f}')
+
+        target_speed = min_speed
 
         if target_speed < velocity.length():
             throttle = -1
@@ -134,7 +151,8 @@ class RoadSprinter(Bot):
 
         # debug drawing
         self.closest = self.points[closest]
-        self.lookahead = self.points[i]
+        self.lookahead = lookahead_point
+        self.corner = self.points[corner_index]
 
         return throttle, angular_velocity
 
@@ -153,9 +171,10 @@ class RoadSprinter(Bot):
         for i in range(len(self.points)):
             p = self.points[i]
             target_speed = self.target_speeds[i]
-            target_speed = target_speed / 5
+            target_speed = target_speed / 5 / self.config.corner_slow_down
             color = (0 if target_speed > 255 else 255 - target_speed, 0, 255 if target_speed > 255 else target_speed)
             pygame.draw.circle(map_scaled, color, p * zoom, 2)
 
         pygame.draw.circle(map_scaled, (200, 0, 0), self.closest * zoom, 5)
         pygame.draw.circle(map_scaled, (0, 200, 0), self.lookahead * zoom, 5)
+        pygame.draw.circle(map_scaled, (0, 0, 200), self.corner * zoom, 5)
