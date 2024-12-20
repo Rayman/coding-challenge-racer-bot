@@ -10,7 +10,7 @@ from .utils import calculate_radius
 from ...bot import Bot
 from ...linear_math import Transform
 
-DEBUG = True
+DEBUG = False
 
 
 def crange(start, end, length) -> Iterable[int]:
@@ -56,10 +56,11 @@ class RoadSprinter(Bot):
     def __init__(self, track):
         super().__init__(track)
         self.config = Namespace(
-            deceleration=131.5248963211792,
-            corner_slow_down=1.0338337310195682,
+            deceleration=100.0,
+            corner_slow_down=2.0,
             alpha=1.0,
-            lookahead=57.610848102630676,
+            lookahead=55.0,
+            speed_lookahead=100,
             min_segment_length=20.0
         )
         self.points = []
@@ -99,7 +100,7 @@ class RoadSprinter(Bot):
 
     @property
     def name(self):
-        return "Road Sprinter"
+        return "Road Sprinter 2"
 
     @property
     def contributor(self):
@@ -107,7 +108,7 @@ class RoadSprinter(Bot):
 
     @property
     def color(self):
-        return Color(200, 200, 0)
+        return Color(200, 0, 0)
 
     def compute_commands(self, next_waypoint: int, position: Transform, velocity: Vector2) -> Tuple:
         # first search for the closest point on the spline to the car
@@ -117,7 +118,7 @@ class RoadSprinter(Bot):
         closest = min(crange(search_start, search_end, len(self.points)),
                       key=lambda i: (self.points[i] - position.p).length())
 
-        i = self.find_lookahead(closest)
+        i = self.find_lookahead(position, closest)
         lookahead_point = self.points[i]
         target = position.inverse() * lookahead_point
         try:
@@ -127,20 +128,22 @@ class RoadSprinter(Bot):
         angular_velocity = gamma * velocity.length()
 
         # print()
-        # print(f'{"i":>3} {"dist":>7} {"target":>7} {"max":>7}')
+        # print(f'{"i":>3} {"dist":>7} {"target":>7} {"max":>8}')
         distance = 0
         min_speed = float('inf')
         corner_index = 0
         for i in crange(closest, (closest + 100) % len(self.points), len(self.points)):
             distance += (self.points[i] - self.points[(i - 1) % len(self.points)]).length()
+            if distance < self.config.speed_lookahead:
+                continue
             target_speed = self.target_speeds[i]
             max_speed = sqrt(target_speed ** 2 + 2 * self.config.deceleration * distance)
             if max_speed < min_speed:
-                # print(f'{i:3} {distance:7.2f} {target_speed:7.2f} {max_speed:7.2f} *')
+                # print(f'{i:3} {distance:7.2f} {target_speed:7.2f} {max_speed:8.2f} *')
                 min_speed = max_speed
                 corner_index = i
             # else:
-            #     print(f'{i:3} {distance:7.2f} {target_speed:7.2f} {max_speed:7.2f}')
+            # print(f'{i:3} {distance:7.2f} {target_speed:7.2f} {max_speed:8.2f}')
 
         target_speed = min_speed
 
@@ -154,11 +157,11 @@ class RoadSprinter(Bot):
         self.lookahead = lookahead_point
         self.corner = self.points[corner_index]
 
-        return throttle, angular_velocity
+        return throttle, 3 * angular_velocity
 
-    def find_lookahead(self, closest: int) -> int:
+    def find_lookahead(self, position: Transform, closest: int) -> int:
         for i in crange(closest, (closest + len(self.points)) % len(self.points), len(self.points)):
-            distance = (self.points[i] - self.points[closest]).length()
+            distance = (self.points[i] - position.p).length()
             if distance > self.config.lookahead:
                 return i
 
